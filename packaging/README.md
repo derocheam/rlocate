@@ -13,6 +13,26 @@ sudo ./packaging/install.sh
 The rest of this document describes the same steps done by hand (and the unit
 files the installer writes), in case you want to customize them.
 
+### macOS (scheduled index via launchd)
+
+On macOS there is no systemd; use the launchd installer to schedule the index
+rebuild (every N minutes, default 60, and once at boot):
+
+```sh
+sudo ./packaging/install-macos.sh
+```
+
+It installs a LaunchDaemon at `/Library/LaunchDaemons/com.rlocate.updatedb.plist`
+(reference copy in `launchd/`). **One manual step is required:** grant Full Disk
+Access to `/usr/local/bin/rlocate-updatedb` in *System Settings → Privacy &
+Security → Full Disk Access*, or TCC-protected folders (Desktop, Documents,
+Downloads, Mail, …) are silently skipped — even though the daemon runs as root.
+
+Run one now and watch it: `sudo launchctl kickstart -k system/com.rlocate.updatedb`
+then `tail -f /var/log/rlocate-updatedb.log`. The macOS installer sets up only
+the scheduled scan (the server `--serve` can be run the same way with a second
+LaunchDaemon if you want the Mac to serve, too).
+
 ---
 
 These units run the query server on boot and rebuild the index on a schedule.

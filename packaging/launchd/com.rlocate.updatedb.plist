@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Reference LaunchDaemon for the hourly rlocate index rebuild on macOS.
+  The installer (packaging/install-macos.sh) generates this file with your
+  chosen roots / interval. Install at /Library/LaunchDaemons/, owned root:wheel,
+  mode 644, then: launchctl bootstrap system <path>.
+
+  IMPORTANT: grant Full Disk Access to /usr/local/bin/rlocate-updatedb in
+  System Settings > Privacy & Security > Full Disk Access, or TCC-protected
+  folders (Desktop, Documents, Downloads, Mail, ...) are silently skipped.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.rlocate.updatedb</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/rlocate-updatedb</string>
+        <string>--output</string>
+        <string>/var/db/rlocate/rlocate.db</string>
+        <string>/</string>
+    </array>
+
+    <!-- Rebuild every hour (seconds). A rebuild missed while asleep runs on wake. -->
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <!-- Also build once when the daemon is first loaded / at boot. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/var/log/rlocate-updatedb.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/rlocate-updatedb.log</string>
+
+    <!-- Be gentle: background I/O and low CPU priority. -->
+    <key>LowPriorityIO</key>
+    <true/>
+    <key>Nice</key>
+    <integer>10</integer>
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

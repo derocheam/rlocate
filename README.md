@@ -100,6 +100,12 @@ listen address, then writes and enables all the units):
 sudo ./packaging/install.sh
 ```
 
+On macOS, schedule the index rebuild via launchd instead:
+
+```sh
+sudo ./packaging/install-macos.sh   # hourly by default; grant Full Disk Access
+```
+
 See [`packaging/README.md`](packaging/README.md) for the manual steps. The token
 can be supplied via `--token`, the `RLOCATE_TOKEN` environment variable, or
 `--token-file PATH` (which pairs with systemd encrypted credentials).
