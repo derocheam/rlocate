@@ -18,7 +18,7 @@ authors = ["rlocate contributors"]
 rlocate-core = { path = "crates/rlocate-core" }
 anyhow = "1"
 thiserror = "1"
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "env"] }
 memmap2 = "0.9"
 zstd = "0.13"
 rayon = "1"

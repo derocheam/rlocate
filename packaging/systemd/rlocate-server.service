@@ -1,0 +1,24 @@
+[Unit]
+Description=rlocate query server
+Documentation=https://github.com/derocheam/rlocate
+After=network-online.target
+Wants=network-online.target
+# Don't start until an index exists (the server mmaps it at startup).
+ConditionPathExists=/var/lib/rlocate/rlocate.db
+
+[Service]
+Type=simple
+# RLOCATE_TOKEN lives here, not on the command line (unit files are world-readable).
+EnvironmentFile=/etc/rlocate/server.env
+ExecStart=/usr/local/bin/rlocate --serve --listen 0.0.0.0:9999 --database /var/lib/rlocate/rlocate.db
+Restart=on-failure
+RestartSec=2
+
+# Light hardening: the server only reads the index, never writes.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

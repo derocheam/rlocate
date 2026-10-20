@@ -1,0 +1,13 @@
+[Unit]
+Description=Rebuild the rlocate index hourly
+Documentation=https://github.com/derocheam/rlocate
+
+[Timer]
+OnCalendar=hourly
+# Run a missed rebuild on boot if the machine was off at the scheduled time.
+Persistent=true
+# Spread load so it doesn't fire exactly on the hour.
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

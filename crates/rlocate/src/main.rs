@@ -97,8 +97,13 @@ struct Args {
     host: Option<String>,
 
     /// Shared secret: required by --serve, and sent with each --host query
-    /// (overrides a saved remote's token).
-    #[arg(long = "token", value_name = "TOKEN")]
+    /// (overrides a saved remote's token). May also be set via RLOCATE_TOKEN.
+    #[arg(
+        long = "token",
+        value_name = "TOKEN",
+        env = "RLOCATE_TOKEN",
+        hide_env_values = true
+    )]
     token: Option<String>,
 }
 

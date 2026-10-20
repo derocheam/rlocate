@@ -1,0 +1,15 @@
+[Unit]
+Description=Rebuild the rlocate index
+Documentation=https://github.com/derocheam/rlocate
+
+[Service]
+Type=oneshot
+# Index the whole machine into the default system db. Runs as root so it can
+# read everything; adjust the roots/flags as you like.
+ExecStart=/usr/local/bin/rlocate-updatedb --output /var/lib/rlocate/rlocate.db /
+# The server mmaps the index at startup, so restart it to pick up the new one.
+# '-' => ignore failure (e.g. server not enabled); try-restart is a no-op if
+# the server isn't running.
+ExecStartPost=-/usr/bin/systemctl try-restart rlocate-server.service
+Nice=10
+IOSchedulingClass=idle

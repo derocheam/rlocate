@@ -92,6 +92,10 @@ total: 3
 - `--no-label` drops the `source:` prefix.
 - A remote that is down is reported on stderr; the others still return.
 
+To run the server on boot and refresh the index hourly via systemd, see
+[`packaging/README.md`](packaging/README.md). The token can be supplied via the
+`RLOCATE_TOKEN` environment variable instead of `--token`.
+
 Without `-o`/`-d`, the default index path is `/var/lib/rlocate/rlocate.db`
 (Linux) or `/var/db/rlocate/rlocate.db` (macOS) when run as root, else a
 per-user cache path.
