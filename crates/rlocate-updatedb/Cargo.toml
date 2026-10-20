@@ -1,0 +1,21 @@
+[package]
+name = "rlocate-updatedb"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Index builder for rlocate (the updatedb equivalent)"
+
+[[bin]]
+name = "rlocate-updatedb"
+path = "src/main.rs"
+
+[dependencies]
+rlocate-core.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+rayon.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

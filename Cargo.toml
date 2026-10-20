@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/rlocate-core",
+    "crates/rlocate",
+    "crates/rlocate-updatedb",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/derocheam/rlocate"
+authors = ["rlocate contributors"]
+
+[workspace.dependencies]
+rlocate-core = { path = "crates/rlocate-core" }
+anyhow = "1"
+thiserror = "1"
+clap = { version = "4", features = ["derive"] }
+memmap2 = "0.9"
+zstd = "0.13"
+rayon = "1"
+jwalk = "0.8"
+regex = "1"
+regex-syntax = "0.8"
+globset = "0.4"
+memchr = "2"
+bitpacking = "0.9"
+libc = "0.2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"

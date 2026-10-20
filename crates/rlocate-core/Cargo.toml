@@ -1,0 +1,32 @@
+[package]
+name = "rlocate-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Core index format, compression, trigrams, and matching for rlocate"
+
+[dependencies]
+anyhow.workspace = true
+thiserror.workspace = true
+memmap2.workspace = true
+zstd.workspace = true
+regex.workspace = true
+regex-syntax.workspace = true
+globset.workspace = true
+memchr.workspace = true
+tracing.workspace = true
+bitpacking.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+criterion = "0.5"
+
+[[bench]]
+name = "postings"
+harness = false

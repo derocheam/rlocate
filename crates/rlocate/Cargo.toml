@@ -1,0 +1,18 @@
+[package]
+name = "rlocate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Fast cross-platform locate(1) backed by a trigram index"
+
+[[bin]]
+name = "rlocate"
+path = "src/main.rs"
+
+[dependencies]
+rlocate-core.workspace = true
+anyhow.workspace = true
+clap.workspace = true

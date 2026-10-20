@@ -1,0 +1,57 @@
+.TH RLOCATE-UPDATEDB 1 "2026-10-20" "rlocate" "User Commands"
+.SH NAME
+rlocate-updatedb \- build an rlocate file-name index
+.SH SYNOPSIS
+.B rlocate-updatedb
+[\fIOPTION\fR]... [\fIROOT\fR]...
+.SH DESCRIPTION
+.B rlocate-updatedb
+walks one or more directory trees and builds the trigram index queried by
+.BR rlocate (1).
+If no \fIROOT\fR is given, the filesystem root
+.RB ( / )
+is indexed.
+.PP
+The walk does not follow symbolic links. It crosses mount boundaries by
+default, skipping filesystems whose type is network or pseudo (for example
+.BR nfs ", " smbfs ", " devfs ", " proc ).
+Directory names such as
+.B .git
+and absolute paths such as
+.B /tmp
+(and, on macOS, the APFS
+.B /System/Volumes/Data
+firmlink and
+.BR /Volumes )
+are pruned by default.
+.PP
+The index is written to a temporary file and installed atomically. When built
+as root it is made world-readable so any user can query it.
+.SH OPTIONS
+.TP
+.BR \-o ", " \-\-output " \fIPATH\fR"
+Write the index to \fIPATH\fR instead of the platform default.
+.TP
+.BR \-\-conf " \fIFILE\fR"
+Read extra prune rules from an \fBupdatedb.conf\fR-style file
+.RB ( PRUNEPATHS ", " PRUNENAMES ", " PRUNEFS ).
+.TP
+.BR \-x ", " \-\-one\-file\-system
+Do not descend into other mounted filesystems.
+.TP
+.BR \-\-level " \fIN\fR"
+zstd compression level for file-name blocks (default 19).
+.TP
+.BR \-\-dict\-size " \fIBYTES\fR"
+Maximum trained zstd dictionary size (default 65536; 0 disables).
+.TP
+.BR \-v ", " \-\-verbose
+Report progress for each build phase.
+.SH DEFAULT INDEX
+.B /var/lib/rlocate/rlocate.db
+on Linux,
+.B /var/db/rlocate/rlocate.db
+on macOS when run as root; otherwise a per-user cache path.
+.SH SEE ALSO
+.BR rlocate (1),
+.BR updatedb (8)

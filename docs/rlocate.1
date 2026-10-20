@@ -1,0 +1,91 @@
+.TH RLOCATE 1 "2026-10-20" "rlocate" "User Commands"
+.SH NAME
+rlocate \- find files by name using a trigram index
+.SH SYNOPSIS
+.B rlocate
+[\fIOPTION\fR]... \fIPATTERN\fR...
+.SH DESCRIPTION
+.B rlocate
+searches a prebuilt index (see
+.BR rlocate-updatedb (1))
+for file names matching one or more patterns, printing one match per line.
+.PP
+By default a pattern matches anywhere in the path (substring). A pattern
+containing the glob metacharacters
+.BR * ", " ? ", or " [
+is matched as an anchored
+.BR fnmatch (3)
+glob in which
+.B *
+also matches
+.BR / .
+With
+.B \-r
+patterns are treated as regular expressions matched anywhere in the path.
+.SH OPTIONS
+.TP
+.BR \-d ", " \-\-database " \fIPATH\fR"
+Use the index at \fIPATH\fR instead of the platform default.
+.TP
+.BR \-r ", " \-\-regexp
+Interpret patterns as regular expressions.
+.TP
+.BR \-i ", " \-\-ignore\-case
+Match case-insensitively (disables trigram pruning; scans all names).
+.TP
+.BR \-b ", " \-\-basename
+Match only against the final path component.
+.TP
+.BR \-w ", " \-\-wholename
+Match against the whole path (the default; overrides \fB\-b\fR).
+.TP
+.BR \-e ", " \-\-existing
+Only print entries that still exist on disk.
+.TP
+.BR \-c ", " \-\-count
+Print only the number of matches.
+.TP
+.BR \-l ", " \-\-limit " \fIN\fR"
+Stop after \fIN\fR matches (0 means unlimited). Alias: \fB\-n\fR.
+.TP
+.BR \-0 ", " \-\-null
+Separate results with a NUL byte instead of a newline.
+.TP
+.BR \-S ", " \-\-statistics
+Print statistics about the index and exit (no pattern required; local only).
+.SS Remote queries
+.TP
+.BR \-\-serve
+Run as a query server instead of searching. Loads the index (\fB\-d\fR or the
+default) once and serves clients concurrently.
+.TP
+.BR \-\-listen " \fIADDR\fR"
+Address to bind in \fB\-\-serve\fR mode (default \fB127.0.0.1:9999\fR).
+.TP
+.BR \-\-host " \fIADDR\fR"
+Query a remote rlocate server at \fIADDR\fR (\fIhost:port\fR) instead of a local
+index. The search runs on the server; only matched paths are returned.
+.TP
+.BR \-\-token " \fITOKEN\fR"
+Shared secret. Required by \fB\-\-serve\fR and sent with every \fB\-\-host\fR
+query. The transport is unencrypted plain TCP; use a trusted network or an SSH
+tunnel.
+.SH EXIT STATUS
+.TP
+.B 0
+At least one match was found (or \fB\-S\fR was used).
+.TP
+.B 1
+No matches.
+.TP
+.B 2
+An error occurred (for example, the index could not be opened).
+.SH DEFAULT INDEX
+.B /var/lib/rlocate/rlocate.db
+on Linux,
+.B /var/db/rlocate/rlocate.db
+on macOS when run as root; otherwise a per-user cache path.
+.SH SEE ALSO
+.BR rlocate-updatedb (1),
+.BR locate (1),
+.BR plocate (1)
