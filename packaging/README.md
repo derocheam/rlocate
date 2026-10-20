@@ -1,7 +1,22 @@
 # Running rlocate as a service (Linux / systemd)
 
-These units run the query server on boot and rebuild the index hourly. Run the
-commands as root.
+## Quick install (interactive)
+
+The easiest path is the installer, which asks for the token, scan paths,
+frequency, and listen address, then builds/installs the binaries, stores the
+token, and writes + enables all the systemd units:
+
+```sh
+sudo ./packaging/install.sh
+```
+
+The rest of this document describes the same steps done by hand (and the unit
+files the installer writes), in case you want to customize them.
+
+---
+
+These units run the query server on boot and rebuild the index on a schedule.
+Run the commands as root.
 
 ## 1. Build and install the binaries
 
