@@ -62,14 +62,43 @@ default) once and serves clients concurrently.
 .BR \-\-listen " \fIADDR\fR"
 Address to bind in \fB\-\-serve\fR mode (default \fB127.0.0.1:9999\fR).
 .TP
-.BR \-\-host " \fIADDR\fR"
-Query a remote rlocate server at \fIADDR\fR (\fIhost:port\fR) instead of a local
-index. The search runs on the server; only matched paths are returned.
+.BR \-\-host " \fIADDR\fR|\fINAME\fR"
+Query a single remote server. \fIADDR\fR is a \fIhost:port\fR; \fINAME\fR is a
+saved remote (see \fBSAVED REMOTES\fR), which supplies its host and token. The
+search runs on the server; only matched paths are returned.
 .TP
 .BR \-\-token " \fITOKEN\fR"
-Shared secret. Required by \fB\-\-serve\fR and sent with every \fB\-\-host\fR
-query. The transport is unencrypted plain TCP; use a trusted network or an SSH
-tunnel.
+Shared secret. Required by \fB\-\-serve\fR; sent with every \fB\-\-host\fR query
+(overrides a saved remote's token). The transport is unencrypted plain TCP; use
+a trusted network or an SSH tunnel.
+.TP
+.BR \-\-local
+Search only the local index, ignoring any saved remotes.
+.TP
+.BR \-\-no\-label
+Do not prefix results with their source name in a multi-source search.
+.TP
+.BR \-\-remotes\-file " \fIPATH\fR"
+Use this saved-remotes file instead of the default.
+.SH SAVED REMOTES
+If a remotes config exists (default
+.IR ~/.config/rlocate/remotes.conf ,
+or
+.I $XDG_CONFIG_HOME/rlocate/remotes.conf )
+and \fB\-\-local\fR is not given, a plain search queries every saved remote
+concurrently \fIand\fR the local index, prefixing each result with its source
+name. The file is INI-style; each section is a remote:
+.PP
+.RS
+.nf
+[plex]
+host = plex.local:9999
+token = s3cret
+.fi
+.RE
+.PP
+It contains secrets \(em restrict it with
+.BR "chmod 600" .
 .SH EXIT STATUS
 .TP
 .B 0

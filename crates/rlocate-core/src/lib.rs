@@ -18,6 +18,7 @@ pub mod matcher;
 pub mod names;
 pub mod net;
 pub mod postings;
+pub mod remotes;
 pub mod search;
 pub mod trigram;
 

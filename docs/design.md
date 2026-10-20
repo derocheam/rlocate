@@ -90,12 +90,19 @@ rare×common intersection ≈ 11 µs. End to end, trigram-pruned queries over a
 
 ## Remote queries
 
-The `rlocate` binary has three modes:
+The `rlocate` binary has these modes:
 
-- **local** (default) — open the mmapped index and search.
+- **local** (default when no remotes are configured, or with `--local`) — open
+  the mmapped index and search.
 - **`--serve`** — load the index once (`Arc<Index>`, shared across threads) and
   accept TCP connections, one thread per client.
-- **`--host ADDR`** — connect to a server, send a request, print streamed results.
+- **`--host ADDR|NAME`** — query a single remote. `NAME` resolves against the
+  saved-remotes config ([`remotes.rs`](../crates/rlocate-core/src/remotes.rs))
+  to supply host + token.
+- **aggregate** (default when a remotes config with entries exists) — search the
+  local index and every saved remote concurrently (one thread per remote),
+  labeling each result by source. A down remote is reported on stderr and
+  skipped; the rest still return. `--local` opts out.
 
 The wire protocol lives in [`net.rs`](../crates/rlocate-core/src/net.rs) so
 client and server share one definition:

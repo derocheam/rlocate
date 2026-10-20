@@ -56,6 +56,42 @@ tunnel it over SSH (`ssh -L 9999:localhost:9999 server`) and query
 `--host localhost:9999`. All query flags (`-r`, `-i`, `-b`, `-e`, `-l`, `-c`,
 `-0`) work remotely; `-e` is evaluated against the server's filesystem.
 
+### Saved remotes (search several hosts automatically)
+
+Define named remotes once in `~/.config/rlocate/remotes.conf` (override with
+`--remotes-file`; it holds tokens, so `chmod 600` it):
+
+```ini
+[plex]
+host = plex.local:9999
+token = s3cret
+
+[proxmox]
+host = 10.0.0.5:9999
+token = hunter2
+```
+
+With that file present, a plain search **automatically queries every saved
+remote concurrently, plus the local index**, labeling each result by source:
+
+```sh
+$ rlocate widget
+local:/home/me/widget_local.txt
+plex:/srv/media/widget_report.txt
+proxmox:/var/lib/widget_notes.txt
+
+$ rlocate -c widget        # per-source counts + total
+local: 1
+plex: 1
+proxmox: 1
+total: 3
+```
+
+- `--local` searches only the local index (ignores saved remotes).
+- `--host <name>` queries just one saved remote by name (uses its saved token).
+- `--no-label` drops the `source:` prefix.
+- A remote that is down is reported on stderr; the others still return.
+
 Without `-o`/`-d`, the default index path is `/var/lib/rlocate/rlocate.db`
 (Linux) or `/var/db/rlocate/rlocate.db` (macOS) when run as root, else a
 per-user cache path.
