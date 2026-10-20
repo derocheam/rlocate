@@ -93,8 +93,10 @@ total: 3
 - A remote that is down is reported on stderr; the others still return.
 
 To run the server on boot and refresh the index hourly via systemd, see
-[`packaging/README.md`](packaging/README.md). The token can be supplied via the
-`RLOCATE_TOKEN` environment variable instead of `--token`.
+[`packaging/README.md`](packaging/README.md). The token can be supplied via
+`--token`, the `RLOCATE_TOKEN` environment variable, or `--token-file PATH`
+(which pairs with systemd encrypted credentials — the recommended way to store
+it).
 
 Without `-o`/`-d`, the default index path is `/var/lib/rlocate/rlocate.db`
 (Linux) or `/var/db/rlocate/rlocate.db` (macOS) when run as root, else a

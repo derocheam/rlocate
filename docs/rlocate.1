@@ -69,8 +69,15 @@ search runs on the server; only matched paths are returned.
 .TP
 .BR \-\-token " \fITOKEN\fR"
 Shared secret. Required by \fB\-\-serve\fR; sent with every \fB\-\-host\fR query
-(overrides a saved remote's token). The transport is unencrypted plain TCP; use
-a trusted network or an SSH tunnel.
+(overrides a saved remote's token). May also be set via the
+.B RLOCATE_TOKEN
+environment variable. The transport is unencrypted plain TCP; use a trusted
+network or an SSH tunnel.
+.TP
+.BR \-\-token\-file " \fIPATH\fR"
+Read the shared secret from \fIPATH\fR (trailing newline trimmed). Takes
+precedence over \fB\-\-token\fR. Pairs with systemd credentials, e.g.
+.BR "--token-file %d/token" .
 .TP
 .BR \-\-local
 Search only the local index, ignoring any saved remotes.

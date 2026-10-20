@@ -105,6 +105,12 @@ struct Args {
         hide_env_values = true
     )]
     token: Option<String>,
+
+    /// Read the shared secret from this file (trailing newline trimmed). Pairs
+    /// with systemd credentials, e.g. --token-file %d/token. Takes precedence
+    /// over --token / RLOCATE_TOKEN.
+    #[arg(long = "token-file", value_name = "PATH", env = "RLOCATE_TOKEN_FILE")]
+    token_file: Option<PathBuf>,
 }
 
 /// Matching parameters shared by local, server, and remote execution.
@@ -163,6 +169,17 @@ fn run() -> Result<bool> {
 }
 
 impl Args {
+    /// The shared secret from `--token-file` (preferred), else `--token` /
+    /// `RLOCATE_TOKEN`. `None` if none was supplied.
+    fn cli_token(&self) -> Result<Option<String>> {
+        if let Some(path) = &self.token_file {
+            let s = std::fs::read_to_string(path)
+                .with_context(|| format!("reading token file {}", path.display()))?;
+            return Ok(Some(s.trim_end_matches(['\n', '\r']).to_string()));
+        }
+        Ok(self.token.clone())
+    }
+
     fn query_params(&self) -> QueryParams {
         QueryParams {
             regexp: self.regexp,
@@ -352,7 +369,7 @@ fn remote_query(
 
 /// Query one remote (host:port or a saved-remote NAME) and print results.
 fn single_remote(args: &Args, host: &str) -> Result<bool> {
-    let (addr, token) = resolve_host(args, host);
+    let (addr, token) = resolve_host(args, host)?;
     let request = build_request(token, &args.query_params(), &args.patterns);
 
     let stdout = io::stdout();
@@ -375,14 +392,15 @@ fn single_remote(args: &Args, host: &str) -> Result<bool> {
 }
 
 /// Resolve a `--host` value: a saved-remote name supplies host+token; otherwise
-/// it is treated as a literal host:port with the `--token` (if any).
-fn resolve_host(args: &Args, host: &str) -> (String, String) {
+/// it is treated as a literal host:port. An explicit `--token`/`--token-file`
+/// always overrides a saved remote's token.
+fn resolve_host(args: &Args, host: &str) -> Result<(String, String)> {
+    let cli_token = args.cli_token()?;
     let remotes = load_remotes(args).unwrap_or_default();
     if let Some(r) = remotes.iter().find(|r| r.name == host) {
-        let token = args.token.clone().unwrap_or_else(|| r.token.clone());
-        (r.host.clone(), token)
+        Ok((r.host.clone(), cli_token.unwrap_or_else(|| r.token.clone())))
     } else {
-        (host.to_string(), args.token.clone().unwrap_or_default())
+        Ok((host.to_string(), cli_token.unwrap_or_default()))
     }
 }
 
@@ -473,9 +491,11 @@ fn print_source<W: Write>(
 // ---------------------------------------------------------------------------
 
 fn serve(args: &Args) -> Result<bool> {
-    let token = args.token.clone().context("--serve requires --token")?;
+    let token = args
+        .cli_token()?
+        .context("--serve requires --token or --token-file")?;
     if token.is_empty() {
-        bail!("--token must not be empty");
+        bail!("token must not be empty");
     }
     let db_path = args
         .database

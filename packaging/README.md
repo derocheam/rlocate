@@ -13,14 +13,41 @@ install -m 0755 target/release/rlocate-updatedb /usr/local/bin/
 install -d -m 0755 /var/lib/rlocate
 ```
 
-## 2. Create the token env file (not world-readable)
+## 2. Store the token as an encrypted systemd credential (recommended)
+
+`systemd-creds` encrypts the token with a host-bound (or TPM-bound) key. systemd
+decrypts it at service start into a private tmpfs file (`%d/token`, mode 0400,
+readable only by this service) — never in plaintext on disk at rest, never in
+the environment, never world-readable.
 
 ```sh
 install -d -m 0755 /etc/rlocate
-printf 'RLOCATE_TOKEN=%s\n' "$(openssl rand -hex 24)" > /etc/rlocate/server.env
-chmod 600 /etc/rlocate/server.env
-cat /etc/rlocate/server.env   # note the token for your clients
+TOKEN=$(openssl rand -hex 24)
+echo "token for your clients: $TOKEN"
+printf '%s' "$TOKEN" | systemd-creds encrypt --name=token - /etc/rlocate/token.cred
 ```
+
+The `rlocate-server.service` unit references it with
+`LoadCredentialEncrypted=token:/etc/rlocate/token.cred` and passes
+`--token-file %d/token` to the server.
+
+> Note: a credential encrypted with the default host key only decrypts on *this*
+> machine. To rotate the token, re-run the `encrypt` command and
+> `systemctl restart rlocate-server`.
+
+### Simpler alternative (plaintext file, root-only)
+
+If you don't want encryption, a root-owned `0600` file also keeps the token out
+of the environment and `ps` (better than an env var):
+
+```sh
+install -d -m 0755 /etc/rlocate
+openssl rand -hex 24 > /etc/rlocate/token
+chmod 600 /etc/rlocate/token
+```
+
+Then in `rlocate-server.service`, replace the `LoadCredentialEncrypted=` line and
+the `--token-file %d/token` argument with `--token-file /etc/rlocate/token`.
 
 ## 3. Build the index once (the server won't start without it)
 
@@ -63,7 +90,7 @@ Set the same token and point `--host` at the box, or add it to your client's
 ```ini
 [proxmox]
 host = <proxmox-ip>:9999
-token = <the token from server.env>
+token = <the token you generated in step 2>
 ```
 
 ## Security notes
@@ -71,6 +98,8 @@ token = <the token from server.env>
 - The transport is **plaintext TCP**. `--listen 0.0.0.0:9999` exposes it on all
   interfaces — fine on a trusted LAN. Restrict it with a firewall, bind a
   specific interface, or front it with an SSH tunnel and `--listen 127.0.0.1:9999`.
-- Keep `/etc/rlocate/server.env` at mode `600`; it holds the token.
+- The token is stored encrypted (`/etc/rlocate/token.cred`); it is only
+  decrypted into a service-private tmpfs at runtime. If you used the plaintext
+  fallback instead, keep that file at mode `600`.
 - The server returns **file paths** (not contents) from the index to anyone with
   the token.
