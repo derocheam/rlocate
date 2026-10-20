@@ -29,9 +29,14 @@ Security → Full Disk Access*, or TCC-protected folders (Desktop, Documents,
 Downloads, Mail, …) are silently skipped — even though the daemon runs as root.
 
 Run one now and watch it: `sudo launchctl kickstart -k system/com.rlocate.updatedb`
-then `tail -f /var/log/rlocate-updatedb.log`. The macOS installer sets up only
-the scheduled scan (the server `--serve` can be run the same way with a second
-LaunchDaemon if you want the Mac to serve, too).
+then `tail -f /var/log/rlocate-updatedb.log`.
+
+The installer also offers (opt-in, default no) to run the **query server** as a
+second LaunchDaemon (`com.rlocate.server`). If you enable it, the token is stored
+in `/usr/local/etc/rlocate/token` (root-only `0600`), and the scheduled rebuild
+runs via a small wrapper (`/usr/local/bin/rlocate-refresh`) that restarts the
+server after each rebuild so it re-opens the fresh index (the server mmaps the
+index at startup). Server logs: `/var/log/rlocate-server.log`.
 
 ---
 
