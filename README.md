@@ -15,6 +15,7 @@ return in milliseconds against a compact index.
 | `rlocate-core` | lib | Index format, posting-list codec, trigrams, matcher, filename store, filesystem walk |
 | `rlocate-updatedb` | bin | Builds the index by walking the filesystem (the `updatedb` equivalent) |
 | `rlocate` | bin | Queries the index (the `locate` equivalent) |
+| `rlocate-web` | bin | A small local web frontend (search UI over the local index + remotes) |
 
 ## Build & test
 
@@ -113,6 +114,20 @@ can be supplied via `--token`, the `RLOCATE_TOKEN` environment variable, or
 Without `-o`/`-d`, the default index path is `/var/lib/rlocate/rlocate.db`
 (Linux) or `/var/db/rlocate/rlocate.db` (macOS) when run as root, else a
 per-user cache path.
+
+## Web frontend
+
+`rlocate-web` serves a single-page search UI (and a JSON API) backed by the same
+core. It searches the local index and any saved remotes together, labels each
+result by source, and lets you filter results by file type and by source:
+
+```sh
+rlocate-web -d /var/db/rlocate/rlocate.db   # then open http://127.0.0.1:8080/
+# --listen ADDR to change the bind address, --remotes-file PATH for remotes
+```
+
+It binds to `127.0.0.1` by default and has **no authentication** — it exposes
+your index over HTTP, so keep it on localhost (don't bind a public interface).
 
 ## Design
 

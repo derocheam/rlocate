@@ -1,0 +1,18 @@
+[package]
+name = "rlocate-web"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "A small local web frontend for rlocate"
+
+[[bin]]
+name = "rlocate-web"
+path = "src/main.rs"
+
+[dependencies]
+rlocate-core.workspace = true
+anyhow.workspace = true
+clap.workspace = true

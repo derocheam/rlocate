@@ -15,7 +15,8 @@
 //! ```
 //! `bytes32` = `u32` length followed by that many bytes.
 
-use std::io::{self, Read, Write};
+use std::io::{self, BufReader, BufWriter, Read, Write};
+use std::net::TcpStream;
 
 pub const REQ_MAGIC: [u8; 4] = *b"RLQ1";
 pub const RESP_MAGIC: [u8; 4] = *b"RLR1";
@@ -160,6 +161,34 @@ pub fn read_result<R: Read>(r: &mut R) -> io::Result<Option<Vec<u8>>> {
 /// Read an error message (for non-OK statuses).
 pub fn read_message<R: Read>(r: &mut R) -> io::Result<String> {
     Ok(String::from_utf8_lossy(&read_bytes(r, MAX_PATTERN)?).into_owned())
+}
+
+/// Connect to `addr`, send `request`, and collect every matched path.
+///
+/// Returns `PermissionDenied` on auth failure and `Other` on a server error,
+/// carrying the server's message.
+pub fn query(addr: &str, request: &Request) -> io::Result<Vec<Vec<u8>>> {
+    let stream = TcpStream::connect(addr)?;
+    stream.set_nodelay(true).ok();
+    let mut reader = BufReader::new(stream.try_clone()?);
+    let mut writer = BufWriter::new(stream);
+    request.write_to(&mut writer)?;
+
+    match read_status(&mut reader)? {
+        STATUS_OK => {}
+        STATUS_AUTH_FAILED => {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                read_message(&mut reader)?,
+            ))
+        }
+        _ => return Err(io::Error::other(read_message(&mut reader)?)),
+    }
+    let mut out = Vec::new();
+    while let Some(path) = read_result(&mut reader)? {
+        out.push(path);
+    }
+    Ok(out)
 }
 
 /// Constant-time token comparison (guards against trivial timing probes).

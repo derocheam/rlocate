@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rlocate</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1b1f24; --muted: #6a737d; --line: #e1e4e8;
+    --accent: #2563eb; --chip: #eef2ff; --chip-fg: #3730a3; --hover: #f6f8fa;
+    --err-bg: #fff5f5; --err-fg: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --line: #30363d;
+      --accent: #4493f8; --chip: #1f2a44; --chip-fg: #9db7f0; --hover: #161b22;
+      --err-bg: #2a1416; --err-fg: #ff7b72;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--fg);
+  }
+  header { padding: 20px 24px 8px; }
+  h1 { margin: 0; font-size: 20px; letter-spacing: -0.01em; }
+  h1 .dim { color: var(--muted); font-weight: 400; }
+  .wrap { padding: 0 24px 40px; max-width: 1100px; }
+  .searchbar { display: flex; gap: 8px; margin: 12px 0; }
+  input[type=text] {
+    flex: 1; padding: 10px 12px; font-size: 15px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--bg); color: var(--fg);
+  }
+  input[type=text]:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  button {
+    padding: 10px 18px; font-size: 15px; font-weight: 600; border: none; border-radius: 8px;
+    background: var(--accent); color: #fff; cursor: pointer;
+  }
+  button:active { transform: translateY(1px); }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; margin: 8px 0 4px; color: var(--muted); }
+  .controls label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--fg); }
+  .controls .group { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+  .controls .glabel { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+  .status { margin: 14px 0 6px; color: var(--muted); min-height: 20px; }
+  .errors { background: var(--err-bg); color: var(--err-fg); border-radius: 8px; padding: 8px 12px; margin: 8px 0; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: baseline; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  td.path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; }
+  tr:hover td { background: var(--hover); }
+  .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--chip); color: var(--chip-fg); font-size: 12px; font-weight: 600; }
+  .ext { color: var(--muted); font-variant: tabular-nums; }
+  .empty { color: var(--muted); padding: 24px 0; }
+  .tablewrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>rlocate <span class="dim">search</span></h1>
+</header>
+<div class="wrap">
+  <form class="searchbar" id="form">
+    <input type="text" id="q" placeholder="Search filenames…  (substring, glob like */bin/*, or regex with Regex on)" autofocus autocomplete="off">
+    <button type="submit">Search</button>
+  </form>
+
+  <div class="controls">
+    <label><input type="checkbox" id="regexp"> Regex</label>
+    <label><input type="checkbox" id="ignore_case"> Ignore case</label>
+    <div class="group"><span class="glabel">Type</span>
+      <select id="typeFilter"></select>
+    </div>
+    <div class="group"><span class="glabel">Sources</span>
+      <span id="sources"></span>
+    </div>
+  </div>
+
+  <div class="status" id="status">Enter a query to search.</div>
+  <div id="errors"></div>
+  <div class="tablewrap">
+    <table id="resultsTable" hidden>
+      <thead><tr><th style="width:1%">Source</th><th>Path</th><th style="width:1%">Type</th></tr></thead>
+      <tbody id="results"></tbody>
+    </table>
+  </div>
+  <div class="empty" id="empty" hidden>No matches.</div>
+</div>
+
+<script>
+const TYPES = {
+  Images:    ["png","jpg","jpeg","gif","webp","heic","svg","bmp","tiff","ico"],
+  Video:     ["mp4","mkv","mov","avi","webm","m4v","mpg","mpeg","wmv"],
+  Audio:     ["mp3","flac","wav","aac","m4a","ogg","opus","aiff"],
+  Documents: ["pdf","doc","docx","xls","xlsx","ppt","pptx","txt","md","rtf","csv","pages","numbers","key"],
+  Archives:  ["zip","tar","gz","bz2","xz","7z","rar","dmg","pkg","iso"],
+  Code:      ["rs","py","js","ts","tsx","jsx","go","c","h","cc","cpp","hpp","java","rb","sh","php","html","css","json","toml","yaml","yml","xml","sql","lua","swift"],
+};
+const EXT_TO_CAT = {};
+for (const [cat, exts] of Object.entries(TYPES)) for (const e of exts) EXT_TO_CAT[e] = cat;
+
+let lastResults = [];
+let lastTruncated = false;
+
+function extOf(path) {
+  const base = path.slice(path.lastIndexOf("/") + 1);
+  const dot = base.lastIndexOf(".");
+  return dot > 0 ? base.slice(dot + 1).toLowerCase() : "";
+}
+function catOf(ext) { return EXT_TO_CAT[ext] || (ext ? "Other" : "None"); }
+
+function buildTypeFilter() {
+  const sel = document.getElementById("typeFilter");
+  sel.innerHTML = "";
+  for (const name of ["All", ...Object.keys(TYPES), "Other", "None"]) {
+    const o = document.createElement("option");
+    o.value = name; o.textContent = name; sel.appendChild(o);
+  }
+  sel.addEventListener("change", () => render());
+}
+
+async function loadSources() {
+  const box = document.getElementById("sources");
+  try {
+    const r = await fetch("/api/sources");
+    const data = await r.json();
+    const names = [];
+    if (data.local) names.push("local");
+    for (const rm of data.remotes) names.push(rm);
+    if (names.length === 0) { box.textContent = "(no index or remotes found)"; return; }
+    for (const name of names) {
+      const label = document.createElement("label");
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.value = name; cb.checked = true; cb.className = "src";
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(" " + name));
+      box.appendChild(label);
+    }
+  } catch (e) { box.textContent = "(failed to load sources)"; }
+}
+
+function selectedSources() {
+  return [...document.querySelectorAll("input.src:checked")].map(c => c.value);
+}
+
+async function doSearch(ev) {
+  if (ev) ev.preventDefault();
+  const q = document.getElementById("q").value.trim();
+  const status = document.getElementById("status");
+  if (!q) { status.textContent = "Enter a query to search."; lastResults = []; render(); return; }
+  const params = new URLSearchParams({
+    q,
+    regexp: document.getElementById("regexp").checked ? "1" : "0",
+    ignore_case: document.getElementById("ignore_case").checked ? "1" : "0",
+    sources: selectedSources().join(","),
+  });
+  status.textContent = "Searching…";
+  try {
+    const r = await fetch("/api/search?" + params.toString());
+    const data = await r.json();
+    lastResults = data.results || [];
+    lastTruncated = !!data.truncated;
+    renderErrors(data.errors || []);
+    render();
+  } catch (e) {
+    status.textContent = "Search failed: " + e;
+  }
+}
+
+function renderErrors(errors) {
+  const box = document.getElementById("errors");
+  box.innerHTML = "";
+  if (!errors.length) return;
+  for (const e of errors) {
+    const d = document.createElement("div");
+    d.className = "errors";
+    d.textContent = `${e.source}: ${e.error}`;
+    box.appendChild(d);
+  }
+}
+
+function render() {
+  const truncated = lastTruncated;
+  const typeFilter = document.getElementById("typeFilter").value;
+  const tbody = document.getElementById("results");
+  const table = document.getElementById("resultsTable");
+  const empty = document.getElementById("empty");
+  const status = document.getElementById("status");
+
+  const rows = lastResults.filter(r => {
+    if (typeFilter === "All") return true;
+    return catOf(extOf(r.path)) === typeFilter;
+  });
+
+  tbody.innerHTML = "";
+  for (const r of rows) {
+    const ext = extOf(r.path);
+    const tr = document.createElement("tr");
+    const tdS = document.createElement("td");
+    const chip = document.createElement("span"); chip.className = "chip"; chip.textContent = r.source;
+    tdS.appendChild(chip);
+    const tdP = document.createElement("td"); tdP.className = "path"; tdP.textContent = r.path;
+    const tdE = document.createElement("td"); tdE.className = "ext"; tdE.textContent = ext || "—";
+    tr.append(tdS, tdP, tdE);
+    tbody.appendChild(tr);
+  }
+
+  const total = lastResults.length;
+  const shown = rows.length;
+  table.hidden = shown === 0;
+  empty.hidden = !(total === 0);
+  if (total === 0) { status.textContent = "0 results."; return; }
+  let msg = typeFilter === "All"
+    ? `${total} result${total === 1 ? "" : "s"}`
+    : `${shown} of ${total} result${total === 1 ? "" : "s"} (type: ${typeFilter})`;
+  if (truncated) msg += " — result limit reached, refine your query";
+  status.textContent = msg;
+}
+
+document.getElementById("form").addEventListener("submit", doSearch);
+buildTypeFilter();
+loadSources();
+</script>
+</body>
+</html>

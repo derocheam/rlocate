@@ -4,6 +4,7 @@ members = [
     "crates/rlocate-core",
     "crates/rlocate",
     "crates/rlocate-updatedb",
+    "crates/rlocate-web",
 ]
 
 [workspace.package]
